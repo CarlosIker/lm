@@ -4,3 +4,4 @@
 .coveralls.yml
 .env
 .pyc
+.lc
