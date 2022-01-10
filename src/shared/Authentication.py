@@ -26,7 +26,7 @@ class Auth():
         payload,
         os.getenv('JWT_SECRET_KEY'),
         'HS256'
-      )
+      ).decode('utf-8')
     except Exception as e:
       print(e)
       return Response(

@@ -3,6 +3,7 @@ import datetime
 import string    
 import random
 
+
 from . import db, bcrypt
 
 class UserModel(db.Model):
@@ -81,7 +82,7 @@ class UserModel(db.Model):
   @staticmethod
   def get_all_users():
     return UserModel.query.add_columns(UserModel.id,UserModel.first_name,UserModel.middle_name,UserModel.last_name,
-      UserModel.email,UserModel.zip_code,UserModel.created_at,UserModel.is_active,UserModel.user_type
+      UserModel.email,UserModel.zip_code,UserModel.created_at,UserModel.is_active,UserModel.user_type,UserModel.lat,UserModel.lng
       ).all()
 
   @staticmethod
@@ -134,6 +135,9 @@ class UserSchema(Schema):
   activation_key  = fields.Str(required=False)
   
   zip_code  = fields.Str(required=True,validate=validate_zip_code)
+
+  lat = fields.Float(required=True)
+  lng = fields.Float(required=True)
 
 class ValidateSchema(Schema):
   password = fields.Str(required=True,validate=validate.Length(min=8,max=80))

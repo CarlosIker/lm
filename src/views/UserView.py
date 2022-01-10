@@ -1,12 +1,14 @@
 from marshmallow import ValidationError
 from flask import request, json, Response, Blueprint, g
 from ..models.UserModel import UserModel, UserSchema, ValidateSchema
+from ..models.StatisticsModel import StatisticsModel
 from ..shared.Authentication import Auth
 from flask_mail import Message
 from flask import current_app
 from ..models import mail
 import pika
 import ssl
+
 
 user_api        = Blueprint('user_api', __name__)
 user_schema     = UserSchema()
@@ -148,7 +150,42 @@ def get_me():
   ser_user = user_schema.dump(user)
   return send_response(ser_user, 200)
 
-@user_api.route('/login', methods=['POST'])
+@user_api.route('/get_distances', methods=['GET'])
+@Auth.auth_required
+def get_distances():
+  user = UserModel.get_user(g.user.get('id'))
+  user_data = user_schema.dump(user)
+
+  if user_data.get('lat') != None and user_data.get('lng') != None:
+    data = StatisticsModel.get_distances_from_user(lat=user_data.get('lat'),lng=user_data.get('lng'))
+  else:
+    return send_response({'error':'can not calculate distances for this user. Try again later'}, 400)
+  
+  return send_response(data, 200)
+
+@user_api.route('/get_distances/<int:user_id>', methods=['GET'])
+@Auth.auth_required
+def get_distances_by_user_id(user_id):
+  user = UserModel.get_user(g.user.get('id'))
+  if getattr(user, 'user_type') != 'admin':
+    message = {'success':False,'error': "you do not have the correct permissions to view this content"}
+    return send_response(message, 401)
+
+  user = UserModel.get_user(user_id)
+  if user:
+    user_data = user_schema.dump(user)
+
+    if user_data.get('lat') != None and user_data.get('lng') != None:
+      data = StatisticsModel.get_distances_from_user(lat=user_data.get('lat'),lng=user_data.get('lng'))
+    else:
+      return send_response({'error':'can not calculate distances for this user. Try again later'}, 400)
+    
+    return send_response(data, 200)
+  else:
+    return send_response({'error':'user does not exist'}, 400)
+
+
+@user_api.route('/login', methods=['POST']) 
 def login():
   req_data = request.get_json()
   error = False

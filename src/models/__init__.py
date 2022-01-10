@@ -9,4 +9,6 @@ db = SQLAlchemy()
 bcrypt = Bcrypt()
 mail = Mail()
 
+#from .UserModel import UserModel, UserSchema
 from .UserModel import UserModel, UserSchema
+from .StatisticsModel import *
