@@ -57,19 +57,17 @@ def callback(ch, method, properties, body):
     
     db_session = Session(engine)
 
-    user = db_session.query(Users).first()
+    user = db_session.query(Users).get(message['user_id'])
     
-    user.city = data['city'] if 'city' in data
-    user.country = data['country'] if 'country' in data
-    user.state = data['state'] if 'state' in data
-    user.lat = data['lat'] if 'lat' in data
-    user.lng = data['lng'] if 'lng' in data
+    user.city = data['city'] if 'city' in data else None
+    user.country = data['country'] if 'country' in data else None
+    user.state = data['state'] if 'state' in data else None
+    user.lat = data['lat'] if 'lat' in data else None
+    user.lng = data['lng'] if 'lng' in data else None
 
     db_session.commit()
 
     engine.dispose()
-
-
 
     print(" [x] Done")
     time.sleep(5)
