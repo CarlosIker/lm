@@ -19,13 +19,20 @@ class UserModel(db.Model):
   last_name       = db.Column(db.String(128), nullable=True)
   email           = db.Column(db.String(200), unique=True, nullable=False)
   password        = db.Column(db.String(300), nullable=True)
-  zip_code        = db.Column(db.String(5),  nullable=False)
+  zip_code        = db.Column(db.String(10),  nullable=False)
   created_at      = db.Column(db.DateTime)
   modified_at     = db.Column(db.DateTime)
   is_active       = db.Column(db.Boolean, default=False, nullable=False)
   activation_key  = db.Column(db.String(256), nullable=True, unique=True)
   user_type       = db.Column(db.String(20),nullable=True)
-  
+
+  city            = db.Column(db.String(100),nullable=True)
+  country         = db.Column(db.String(100),nullable=True)
+  state           = db.Column(db.String(100),nullable=True)
+
+  lat             = db.Column(db.String(100),nullable=True)
+  lng             = db.Column(db.String(100),nullable=True)
+
 
   # class constructor
   def __init__(self, data):
