@@ -12,7 +12,7 @@ class UsersTest(unittest.TestCase):
 
     test_data = [
       {'lat1':1.1,'lng1':1.1,'lat2':2.1,'lng2':2.1,'result':157.2141563775629},
-      {'lat1':32.9697,'lng1':-96.80322,'lat2':29.46786,'lng2':-98.53506,'result':157.2141563775629}
+      {'lat1':32.9697,'lng1':-96.80322,'lat2':29.46786,'lng2':-98.53506,'result':422.73893139401383}
     ]
     
     for r in test_data:
