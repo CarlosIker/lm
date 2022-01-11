@@ -9,126 +9,103 @@ class UsersTest(unittest.TestCase):
   def setUpClass(self):
     self.app = create_app("testing")
     self.client = self.app.test_client
-
-    self.activation_key = '123'
-    self.password       = '123456789'
-    self.api_token      = '' 
-    self.user_id        = 1
     
-    #valid
-    self.user0 = {
+  @classmethod
+  def tearDownClass(self):
+    pass
+
+  def setUp(self):
+    print('set up')
+    #general valid password
+    self.password = '123456789'
+
+    #valid data
+    self.user1 = {
       'first_name': 'Carlos',
-      'last_name': 'Carlos',
+      'last_name': 'Atencio',
       'email': 'testcarlosiker@gmail.com',
       'zip_code': '32244'
     }
 
-    #valid
-    self.user1 = {
-      'first_name': 'Carlos',
-      'last_name': 'Carlos',
-      'email': 'carlosatenciof@gmail.com',
-      'zip_code': '32244'
-    }
-
-    #repeated email
-    self.user2 = {
-      'first_name': 'Carlos',
-      'last_name':'Atencio',
-      'email': 'carlos@email.com',
-      'zip_code':'32244'
-    }
-
-    #invalid email
-    self.user3 = {
-      'first_name': 'Carlos',
-      'last_name':'Atencio',
-      'email': 'carlosemail.com',
-      'zip_code':'32244'
-    }
-
-    #no email
-    self.user4 = {
-      'first_name': 'Carlos',
-      'last_name':'Atencio',
-      'zip_code':'32244'
-    }
-
-    #invalid zip_code
-    self.user5 = {
-      'first_name': 'Carlos',
-      'last_name':'Atencio',
-      'email': 'carlos12@email.com',
-      'zip_code':'a1234'
-    }
-
-    #no zip_code
-    self.user6 = {
-      'first_name': 'Carlos',
-      'last_name':'Atencio',
-      'email':'testing@email.com'
-    }
-
-    #invalid credentials
-    self.user7 = {
-      'first_name': 'Carlos',
-      'last_name':'Atencio',
-      'email':'testing@email.com',
-      'zip_code':'12345'
-    }
     #data to update
-    self.user8 = {
+    self.user2 = {
       'first_name': 'Paola',
       'last_name':'Atencio'
     }
-
-
 
     with self.app.app_context():
       #create all tables
       db.create_all()
       #pass
+    
+  def tearDown(self):
+    print('tear down')
+    with self.app.app_context():
+      db.session.remove()
+      db.drop_all()
   
-  """USER CREATION"""
-  def test_a_user_creation(self):
+  def test_user_creation(self):
     """ test user creation with valid credentials """
 
     res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
     json_data = json.loads(res.data)
-    self.assertTrue(json_data.get('id'))
+    self.assertTrue(json_data.get('id'),res.data)
     self.assertTrue(json_data.get('first_name'))
     self.assertTrue(json_data.get('last_name'))
     self.assertTrue(json_data.get('email'))
     self.assertTrue(json_data.get('activation_key'))
     self.assertEqual(res.status_code, 201)
 
-    self.activation_key = json_data.get('activation_key')
-    self.user_id = json_data.get('id')
-
-    
-
   def test_user_creation_with_existing_email(self):
     """ test user creation with already existing email"""
     
-    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user2))
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
     self.assertEqual(res.status_code, 201)
-    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user2))
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
     self.assertTrue(json_data.get('error'))
 
   def test_user_creation_with_invalid_email(self):
     """ test user creation with invalid email"""
+    
+    #case 1
+    data = self.user1
+    data['email'] = 'test.com'
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 400)
+    self.assertTrue(json_data.get('error',{}).get('email'))
 
-    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user3))
+    #case 2
+    data = self.user1
+    data['email'] = 'test@test'
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 400)
+    self.assertTrue(json_data.get('error',{}).get('email'))
+
+    #case 3
+    data = self.user1
+    data['email'] = '1@3'
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 400)
+    self.assertTrue(json_data.get('error',{}).get('email'))
+
+    #case 4
+    data = self.user1
+    data['email'] = 'carlos!test.com'
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
     self.assertTrue(json_data.get('error',{}).get('email'))
 
   def test_user_creation_with_no_email(self):
     """ test user creation with no email """
-   
-    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user4))
+    data = self.user1
+    del data['email']
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
     self.assertTrue(json_data.get('error',{}).get('email'))
@@ -142,81 +119,97 @@ class UsersTest(unittest.TestCase):
 
   def test_user_creation_with_invalid_zip_code(self):
     """ test user creation with invalid zip code"""
-    data = self.user5
+    data = self.user1
 
+    #case 1
     data['zip_code'] = 'a1234'
-    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user5))
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
     self.assertTrue(json_data.get('error',{}).get('zip_code'))
 
+    #case 2
     data['zip_code'] = '1'
-    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user5))
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
     self.assertTrue(json_data.get('error',{}).get('zip_code'))
 
+    #case 3
     data['zip_code'] = 'abcde'
-    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user5))
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
     self.assertTrue(json_data.get('error',{}).get('zip_code'))
 
+    #case 4
     data['zip_code'] = 'asd'
-    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user5))
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
     self.assertTrue(json_data.get('error',{}).get('zip_code'))
 
+    #case 5
     data['zip_code'] = '123-4'
-    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user5))
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
     self.assertTrue(json_data.get('error',{}).get('zip_code'))
 
   def test_user_creation_with_no_zip_code(self):
     """ test user creation with no zip code"""
-   
-    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user6))
+    data = self.user1
+    del data['zip_code']
+
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
     self.assertTrue(json_data.get('error',{}).get('zip_code'))
 
-
-
-
-  def test_b_user_validation_with_no_password(self):
+  def test_user_validation_with_no_password(self):
     """ test user validation with no password"""
 
+    #create
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201)
+
     data = {
-            "activation_key":self.activation_key
+            "activation_key":json_data.get('activation_key')
         }
-   
+
+    #validate
     res = self.client().post('/api/v1/users/validate', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
     self.assertTrue(json_data.get('error',{}).get('password'))
 
-  def test_c_user_validation_with_invalid_password(self):
+  def test_user_validation_with_invalid_password(self):
     """ test user validation with invalid password """
-    
+    #create
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201)
+
     data = {
-            "activation_key":self.activation_key,
-            "password":'1234'
+            'activation_key':json_data.get('activation_key'),
+            'password':'1234'
         }
-   
+
+    #validate
     res = self.client().post('/api/v1/users/validate', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
     self.assertTrue(json_data.get('error',{}).get('password'))
 
-  def test_d_user_validation_with_no_activation_key(self):
+  def test_user_validation_with_no_activation_key(self):
     """ test user validation with no activation key """
-
+    
     data = {
             "password":self.password
         }
    
+    #validate
     res = self.client().post('/api/v1/users/validate', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
@@ -224,58 +217,89 @@ class UsersTest(unittest.TestCase):
   
   def test_user_validation_with_invalid_activation_key(self):
     """ test user validation with invalid activation key """
+    
+    #create
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201)
+    
     data = {
             "activation_key":'12345',
             "password":self.password
         } 
 
+    #validate
     res = self.client().post('/api/v1/users/validate', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
     self.assertTrue(json_data.get('error'))
 
-  def test_e_user_validation_with_valid_data(self):
+  def test_user_validation_with_valid_data(self):
     """ test user validation with valid data """
-    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user0))
+    
+    #create
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
     json_data = json.loads(res.data)
-    self.assertTrue(json_data.get('id'))
-    self.assertTrue(json_data.get('first_name'))
-    self.assertTrue(json_data.get('last_name'))
-    self.assertTrue(json_data.get('email'))
-    self.assertTrue(json_data.get('activation_key'))
+    self.assertEqual(res.status_code, 201)
+
+    data = {
+            "activation_key":json_data.get('activation_key'),
+            "password":self.password
+        }
+
+    #validate 
+    res = self.client().post('/api/v1/users/validate', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201,json.dumps(data))
+    self.assertTrue(json_data.get('message'))
+
+  def test_user_validation_already_active_account(self):
+    """ test user validation with already active account data """
+    #create
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
+    json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 201)
 
     data = {
             "activation_key":json_data.get('activation_key'),
             "password":self.password
         } 
-    print(data)
-   
+
+    #validate 1
     res = self.client().post('/api/v1/users/validate', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 201,json.dumps(data))
-    self.assertTrue(json_data.get('message'))
-
-  def test_f_user_validation_already_active_account(self):
-    """ test user validation with already active account data """
-
-    data = {
-            "activation_key":self.activation_key,
-            "password":self.password
-        } 
-   
+    
+    #validate2
     res = self.client().post('/api/v1/users/validate', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 400)
     self.assertTrue(json_data.get('error'))
 
-  def test_g_user_login(self):
+  def test_user_login(self):
     """ User Login Tests """
+
+    #create
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201)
+    
     data = {
-            "email":self.user0['email'],
+            "activation_key":json_data.get('activation_key'),
             "password":self.password
         } 
 
+    #validate
+    res = self.client().post('/api/v1/users/validate', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201,json.dumps(data))
+
+    data = {
+            "email":self.user1['email'],
+            "password":self.password
+        } 
+
+    #login
     res = self.client().post('/api/v1/users/login', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertTrue(json_data.get('token'))
@@ -283,13 +307,19 @@ class UsersTest(unittest.TestCase):
 
     self.api_token = json_data.get('token')
 
-  def test_h_user_login_with_invalid_password(self):
+  def test_user_login_with_invalid_password(self):
     """ User Login Tests with invalid credentials """
+    #create
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201)
+    
     data = {
       'password': 'test',
       'email': self.user1['email'],
     }
 
+    #login
     res = self.client().post('/api/v1/users/login', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
     self.assertEqual(json_data.get('error'), 'invalid credentials')
@@ -297,6 +327,12 @@ class UsersTest(unittest.TestCase):
 
   def test_user_login_with_invalid_email(self):
     """ User Login Tests with invalid credentials """
+
+    #create
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201)
+
     data = {
       'password': self.password,
       'email': 'carlostest123@mail.com',
@@ -306,88 +342,161 @@ class UsersTest(unittest.TestCase):
     self.assertEqual(json_data.get('error'), 'invalid credentials')
     self.assertEqual(res.status_code, 400)
   
-
-  def test_i_user_get_me(self):
+  def test_user_get_me(self):
     """ Test User Get Me """
+    
+    #create
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201)
 
     data = {
-            "email":self.user0['email'],
+            "activation_key":json_data.get('activation_key'),
             "password":self.password
-        } 
+        }
 
+    #validate
+    res = self.client().post('/api/v1/users/validate', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201,json.dumps(data))
+
+    data = {
+            "email":self.user1['email'],
+            "password":self.password
+        }
+
+    #login
     res = self.client().post('/api/v1/users/login', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     self.assertEqual(res.status_code, 200)
     api_token = json.loads(res.data).get('token')
 
+    #get me
     res = self.client().get('/api/v1/users/me', headers={'Content-Type': 'application/json', 'api-token': api_token})
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 200)
-    self.assertEqual(json_data.get('email'), self.user0['email'])
-    self.assertEqual(json_data.get('first_name'), self.user0['first_name'])
-    self.assertEqual(json_data.get('last_name'), self.user0['last_name'])
-    self.assertEqual(json_data.get('zip_code'), self.user0['zip_code'])
+    self.assertEqual(json_data.get('email'), self.user1['email'])
+    self.assertEqual(json_data.get('first_name'), self.user1['first_name'])
+    self.assertEqual(json_data.get('last_name'), self.user1['last_name'])
+    self.assertEqual(json_data.get('zip_code'), self.user1['zip_code'])
 
-  def test_j_user_get_me_updated_city(self):
+  def test_user_get_me_updated_city(self):
     """ Test User Get Me with update city """
-    time.sleep(5)
-    data = {
-            "email":self.user0['email'],
-            "password":self.password
-        } 
+    #create
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201)
 
+    data = {
+            "activation_key":json_data.get('activation_key'),
+            "password":self.password
+        }
+
+    #validate
+    res = self.client().post('/api/v1/users/validate', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201,json.dumps(data))
+
+    data = {
+            "email":self.user1['email'],
+            "password":self.password
+        }
+        
+    #login
     res = self.client().post('/api/v1/users/login', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     self.assertEqual(res.status_code, 200)
     api_token = json.loads(res.data).get('token')
+    time.sleep(5)
 
     res = self.client().get('/api/v1/users/me', headers={'Content-Type': 'application/json', 'api-token': api_token})
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 200)
     self.assertEqual(json_data.get('city'), 'Fleming Island')
 
-  def test_k_user_update_me(self):
+  def test_user_update_me(self):
     """ Test User Update Me """
-    data = {
-            "email":self.user0['email'],
-            "password":self.password
-        } 
+    #create
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201)
 
+    data = {
+            "activation_key":json_data.get('activation_key'),
+            "password":self.password
+        }
+
+    #validate
+    res = self.client().post('/api/v1/users/validate', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201,json.dumps(data))
+
+    data = {
+            "email":self.user1['email'],
+            "password":self.password
+        }
+        
+    #login
     res = self.client().post('/api/v1/users/login', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     self.assertEqual(res.status_code, 200)
     api_token = json.loads(res.data).get('token')
-    
-    res = self.client().put('/api/v1/users/me', headers={'Content-Type': 'application/json', 'api-token': api_token}, data=json.dumps(self.user8))
+
+    data = self.user1
+    data['first_name'] = self.user2['first_name']
+    data['last_name'] = self.user2['last_name'] 
+
+    #update
+    res = self.client().put('/api/v1/users/me', headers={'Content-Type': 'application/json', 'api-token': api_token}, data=json.dumps(self.user2))
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 200)
-    self.assertEqual(json_data.get('first_name'), self.user8['first_name'])
-    self.assertEqual(json_data.get('last_name'), self.user8['last_name'])
+    
+    #get me
+    res = self.client().get('/api/v1/users/me', headers={'Content-Type': 'application/json', 'api-token': api_token})
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 200)
+    self.assertEqual(json_data.get('first_name'), self.user2['first_name'])
+    self.assertEqual(json_data.get('last_name'), self.user2['last_name'])
 
-  def test_l_user_get_by_id_me(self):
+  def test_user_get_by_id_me(self):
     """ Test User get by id me """
-    data = {
-            "email":self.user0['email'],
-            "password":self.password
-        } 
 
+    #create
+    res = self.client().post('/api/v1/users/create', headers={'Content-Type': 'application/json'}, data=json.dumps(self.user1))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201,self.user1)
+    
+    data = {
+            "activation_key":json_data.get('activation_key'),
+            "password":self.password
+        }
+
+    #validate
+    res = self.client().post('/api/v1/users/validate', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 201,json.dumps(data))
+
+    data = {
+            "email":self.user1['email'],
+            "password":self.password
+        }
+        
+    #login
     res = self.client().post('/api/v1/users/login', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     self.assertEqual(res.status_code, 200)
     api_token = json.loads(res.data).get('token')
-    
-    res = self.client().get('/api/v1/users/2', headers={'Content-Type': 'application/json', 'api-token': api_token})
+
+
+    #get me
+    res = self.client().get('/api/v1/users/me', headers={'Content-Type': 'application/json', 'api-token': api_token})
     json_data = json.loads(res.data)
     self.assertEqual(res.status_code, 200)
-    self.assertEqual(json_data.get('first_name'), self.user8['first_name'])
-    self.assertEqual(json_data.get('last_name'), self.user8['last_name'])
-  
-  
-  @classmethod
-  def tearDownClass(self):
-    """
-    Tear Down
-    """
-    with self.app.app_context():
-      db.session.remove()
-      db.drop_all()
-      #pass
+    user_id = json.loads(res.data).get('id')
+    
+    #get by id
+    res = self.client().get('/api/v1/users/'+str(user_id), headers={'Content-Type': 'application/json', 'api-token': api_token})
+    json_data = json.loads(res.data)
+    self.assertEqual(res.status_code, 200)
+    self.assertEqual(json_data.get('first_name'), self.user1['first_name'])
+    self.assertEqual(json_data.get('last_name'), self.user1['last_name'])
+
 
 if __name__ == "__main__":
   unittest.main() 
