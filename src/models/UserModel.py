@@ -138,6 +138,8 @@ class UserSchema(Schema):
 
   lat = fields.Float(required=False)
   lng = fields.Float(required=False)
+  
+  
 
 class ValidateSchema(Schema):
   password = fields.Str(required=True,validate=validate.Length(min=8,max=80))

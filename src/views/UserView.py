@@ -30,7 +30,7 @@ def create():
     # check if user already exist in the db
     user_in_db = UserModel.get_by_email(data.get('email'))
     if user_in_db:
-      message = {'error': 'User already exist, please supply another email address'}
+      message = {'error': {'email':['User already exist, please supply another email address']}}
       return send_response(message, 400)
 
     user = UserModel(data)
@@ -56,7 +56,7 @@ def create():
         'activation_key':user_data.get('activation_key')
     }, 201)
   else:
-    message = {'error': 'You must speciy the requested values'}
+    message = {'error': {'general':'You must speciy the requested values'}}
     return send_response(message, 400)
 
 @user_api.route('/validate', methods=['POST'])
@@ -83,13 +83,13 @@ def validate():
         user.update(user_data)
         return send_response({'message': 'Account successfully validated'}, 201)
       else:
-        message = {'error': 'Account already active'}
+        message = {'error': {'general':'Account already active'}}
         return send_response(message, 400)
     else:
-      message = {'error': 'Invalid activation key'}
+      message = {'error': {'general':'Invalid activation key'}}
       return send_response(message, 400)    
   else:
-    message = {'error': 'You must speciy the requested values'}
+    message = {'error': {'general':'You must speciy the requested values'}}
     return send_response(message, 400)
 
 @user_api.route('/get_all', methods=['GET'])
@@ -97,7 +97,7 @@ def validate():
 def get_all():
   user = UserModel.get_user(g.user.get('id'))
   if getattr(user, 'user_type') != 'admin':
-    message = {'success':False,'error': "you do not have the correct permissions to view this content"}
+    message = {'error': {'general':"you do not have the correct permissions to view this content"}}
     return send_response(message, 401)
 
   users = UserModel.get_all_users()
@@ -113,18 +113,18 @@ def get_a_user(user_id):
   if getattr(token_user, 'id') == user_id:
     user = UserModel.get_user(g.user.get('id'))
     if not user:
-      return send_response({'error': 'user not found'}, 404)
+      return send_response({'error': {'general':'user not found'}}, 404)
     ser_user = user_schema.dump(user)
     return send_response(ser_user, 200)
   else:
     if getattr(token_user, 'user_type') == 'admin':
       user = UserModel.get_user(user_id)
       if not user:
-        return send_response({'error': 'user not found'}, 404)
+        return send_response({'error': {'general':'user not found'}}, 404)
       ser_user = user_schema.dump(user)
       return send_response(ser_user, 200)
     else:
-      return send_response({'error': 'you do not have the correct permissions to ask for this data'}, 404)
+      return send_response({'error': {'general':'you do not have the correct permissions to ask for this data'}}, 404)
 
 @user_api.route('/me', methods=['PUT'])
 @Auth.auth_required
@@ -148,7 +148,7 @@ def update():
 
     return send_response(ser_user, 200)
   else:
-    message = {'error': 'You must speciy the requested values'}
+    message = {'error': {'general':'You must speciy the requested values'}}
     return send_response(message, 400)
 
 @user_api.route('/me', methods=['GET'])
@@ -169,7 +169,7 @@ def get_distances():
   if user_data.get('lat') != None and user_data.get('lng') != None:
     data = StatisticsModel.get_distances_from_user(lat=user_data.get('lat'),lng=user_data.get('lng'))
   else:
-    return send_response({'error':'can not calculate distances for this user. Try again later'}, 400)
+    return send_response({'error':{'general':'can not calculate distances for this user. Try again later'}}, 400)
   
   return send_response(data, 200)
 
@@ -178,7 +178,7 @@ def get_distances():
 def get_distances_by_user_id(user_id):
   user = UserModel.get_user(g.user.get('id'))
   if getattr(user, 'user_type') != 'admin':
-    message = {'success':False,'error': "you do not have the correct permissions to view this content"}
+    message = {'error': {'general':"you do not have the correct permissions to view this content"}}
     return send_response(message, 401)
 
   user = UserModel.get_user(user_id)
@@ -188,11 +188,11 @@ def get_distances_by_user_id(user_id):
     if user_data.get('lat') != None and user_data.get('lng') != None:
       data = StatisticsModel.get_distances_from_user(lat=user_data.get('lat'),lng=user_data.get('lng'))
     else:
-      return send_response({'error':'can not calculate distances for this user. Try again later'}, 400)
+      return send_response({'error':{'general':'can not calculate distances for this user. Try again later'}}, 400)
     
     return send_response(data, 200)
   else:
-    return send_response({'error':'user does not exist'}, 400)
+    return send_response({'error':{'general':'user does not exist'}}, 400)
 
 
 @user_api.route('/login', methods=['POST']) 
@@ -202,20 +202,19 @@ def login():
   try:
     data = user_schema.load(req_data, partial=True)
   except ValidationError as err:
-    error = {'success':False,'error':err.messages}
+    error = {'error':err.messages}
   if error:
     return send_response(error, 400)
   if not data.get('email') or not data.get('password'):
-    return send_response({'error': 'you need email and password to sign in'}, 400)
+    return send_response({'error': {'general':'you need email and password to sign in'}}, 400)
   user = UserModel.get_by_email(data.get('email'))
   if not user:
-    return send_response({'error': 'invalid credentials'}, 400)
+    return send_response({'error': {'general':'invalid credentials'}}, 400)
   if not user.check_hash(data.get('password')):
-    return send_response({'error': 'invalid credentials'}, 400)
+    return send_response({'error': {'general':'invalid credentials'}}, 400)
   ser_data = user_schema.dump(user)
   token = Auth.generate_token(ser_data.get('id'))
-  return send_response({'success':True,'token': token}, 200)
-
+  return send_response({'token': token}, 200)
 
 def send_response(res, status_code):
 

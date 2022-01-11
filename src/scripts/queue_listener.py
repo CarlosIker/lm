@@ -37,7 +37,7 @@ def callback(ch, method, properties, body):
   print(" [x] Received %s" % body)
   message = json.loads(body.decode())    
   
-  '''
+  
   url = os.getenv('ZIP_CODE_API_BASE_URL') + os.getenv('ZIP_CODE_API_KEY') + '/info.json/' + message['zip_code'] +'/degrees' 
   r = requests.get(url)
   if r.status_code != 200:
@@ -47,9 +47,9 @@ def callback(ch, method, properties, body):
     return None
 
   data = r.json()
-  '''
   
-  data = json.loads('''{"zip_code":"32003","lat":30.095583,"lng":-81.710086,"city":"Fleming Island","state":"FL","timezone":{"timezone_identifier":"America/New_York","timezone_abbr":"EST","utc_offset_sec":-18000,"is_dst":"F"},"acceptable_city_names":[{"city":"Fleming Isle","state":"FL"},{"city":"Orange Park","state":"FL"},{"city":"Orange Pk","state":"FL"}],"area_codes":[904]}''')
+  
+  #data = json.loads('''{"zip_code":"32003","lat":30.095583,"lng":-81.710086,"city":"Fleming Island","state":"FL","timezone":{"timezone_identifier":"America/New_York","timezone_abbr":"EST","utc_offset_sec":-18000,"is_dst":"F"},"acceptable_city_names":[{"city":"Fleming Isle","state":"FL"},{"city":"Orange Park","state":"FL"},{"city":"Orange Pk","state":"FL"}],"area_codes":[904]}''')
   
   try:
     Base = automap_base()    

@@ -322,7 +322,7 @@ class UsersTest(unittest.TestCase):
     #login
     res = self.client().post('/api/v1/users/login', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
-    self.assertEqual(json_data.get('error'), 'invalid credentials')
+    self.assertEqual(json_data.get('error',{}).get('general'), 'invalid credentials')
     self.assertEqual(res.status_code, 400)
 
   def test_user_login_with_invalid_email(self):
@@ -339,7 +339,7 @@ class UsersTest(unittest.TestCase):
     }
     res = self.client().post('/api/v1/users/login', headers={'Content-Type': 'application/json'}, data=json.dumps(data))
     json_data = json.loads(res.data)
-    self.assertEqual(json_data.get('error'), 'invalid credentials')
+    self.assertEqual(json_data.get('error',{}).get('general'), 'invalid credentials')
     self.assertEqual(res.status_code, 400)
   
   def test_user_get_me(self):
