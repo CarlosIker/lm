@@ -117,7 +117,7 @@ class UserModel(db.Model):
 
 class UserSchema(Schema):
   def validate_zip_code(n):
-    if len(n) != 5 and n.isdigit() == False:
+    if len(n) != 5 or n.isdigit() == False:
       raise ValidationError("Zip code must be 5 digits number")
     return n
   
@@ -126,7 +126,7 @@ class UserSchema(Schema):
   middle_name = fields.Str(required=False)
   last_name = fields.Str(required=True)
 
-  email = fields.Email(required=False)
+  email = fields.Email(required=True)
   password = fields.Str(required=False)
   created_at = fields.DateTime(dump_only=True)
   modified_at = fields.DateTime(dump_only=True)
@@ -136,8 +136,8 @@ class UserSchema(Schema):
   
   zip_code  = fields.Str(required=True,validate=validate_zip_code)
 
-  lat = fields.Float(required=True)
-  lng = fields.Float(required=True)
+  lat = fields.Float(required=False)
+  lng = fields.Float(required=False)
 
 class ValidateSchema(Schema):
   password = fields.Str(required=True,validate=validate.Length(min=8,max=80))

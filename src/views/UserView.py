@@ -22,7 +22,7 @@ def create():
     try:
       data = user_schema.load(req_data)
     except ValidationError as err:
-      error = {'success':False,'error':err.messages}
+      error = {'error':err.messages}
 
     if error:
       return send_response(error, 400)
@@ -30,7 +30,7 @@ def create():
     # check if user already exist in the db
     user_in_db = UserModel.get_by_email(data.get('email'))
     if user_in_db:
-      message = {'success':False,'error': 'User already exist, please supply another email address'}
+      message = {'error': 'User already exist, please supply another email address'}
       return send_response(message, 400)
 
     user = UserModel(data)
@@ -45,10 +45,18 @@ def create():
       "validate_account.html?token="+ user_data.get('activation_key') + \
       "\">this</a> link to validate your account <p>"
     mail.send(msg)
-    
-    return send_response({'success':True,'id': user_data.get('id')}, 201)
+
+    return send_response({
+        'id':user_data.get('id'),
+        'first_name':user_data.get('first_name'),
+        'middle_name':user_data.get('middle_name'),
+        'last_name':user_data.get('last_name'),
+        'email':user_data.get('email'),
+        'zip_code':user_data.get('zip_code'),
+        'activation_key':user_data.get('activation_key')
+    }, 201)
   else:
-    message = {'success':False,'error': 'You must speciy the requested values'}
+    message = {'error': 'You must speciy the requested values'}
     return send_response(message, 400)
 
 @user_api.route('/validate', methods=['POST'])
@@ -147,8 +155,10 @@ def update():
 @Auth.auth_required
 def get_me():
   user = UserModel.get_user(g.user.get('id'))
-  ser_user = user_schema.dump(user)
-  return send_response(ser_user, 200)
+  #ser_user = user_schema.dump(user)
+  data = user.as_dict()
+  del data['password']
+  return send_response(data, 200)
 
 @user_api.route('/get_distances', methods=['GET'])
 @Auth.auth_required

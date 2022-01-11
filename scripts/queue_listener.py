@@ -34,46 +34,67 @@ print(' [*] Waiting for messages.')
 
 
 def callback(ch, method, properties, body):
-    print(" [x] Received %s" % body)
-    message = json.loads(body.decode())    
-    '''
-    url = os.getenv('ZIP_CODE_API_BASE_URL') + os.getenv('ZIP_CODE_API_KEY') + '/info.json/' + message['zip_code'] +'/degrees' 
-    r = requests.get(url)
-    data = r.json()
-    '''
-    data = json.loads('''{"zip_code":"32003","lat":30.095583,"lng":-81.710086,"city":"Fleming Island","state":"FL","timezone":{"timezone_identifier":"America/New_York","timezone_abbr":"EST","utc_offset_sec":-18000,"is_dst":"F"},"acceptable_city_names":[{"city":"Fleming Isle","state":"FL"},{"city":"Orange Park","state":"FL"},{"city":"Orange Pk","state":"FL"}],"area_codes":[904]}''')
-    
-    Base = automap_base()
-    
-    #it has 'user' set up
-    engine = create_engine(os.getenv('DATABASE_URL'), convert_unicode=True)
+  print(" [x] Received %s" % body)
+  message = json.loads(body.decode())    
+  
+  '''
+  url = os.getenv('ZIP_CODE_API_BASE_URL') + os.getenv('ZIP_CODE_API_KEY') + '/info.json/' + message['zip_code'] +'/degrees' 
+  r = requests.get(url)
+  if r.status_code != 200:
+    print('error in api request. Got status code != 200')
+    print(f'status code: {r.status_code}')
+    ch.basic_nack(delivery_tag=method.delivery_tag)
+    return None
 
+  data = r.json()
+  '''
+  
+  data = json.loads('''{"zip_code":"32003","lat":30.095583,"lng":-81.710086,"city":"Fleming Island","state":"FL","timezone":{"timezone_identifier":"America/New_York","timezone_abbr":"EST","utc_offset_sec":-18000,"is_dst":"F"},"acceptable_city_names":[{"city":"Fleming Isle","state":"FL"},{"city":"Orange Park","state":"FL"},{"city":"Orange Pk","state":"FL"}],"area_codes":[904]}''')
+  
+  try:
+    Base = automap_base()    
+    #it has 'user' set up
+    engine = create_engine(os.getenv('DATABASE_TEST_URL'), convert_unicode=True)
     # reflect the table
     Base.prepare(engine, reflect=True)
-
     # mapped classes are now created with names by default
     # matching that of the table name.
     Users = Base.classes.users
     
     db_session = Session(engine)
+  except:
+    pass
 
-    user = db_session.query(Users).get(message['user_id'])
-    
-    user.city = data['city'] if 'city' in data else None
-    user.country = data['country'] if 'country' in data else None
-    user.state = data['state'] if 'state' in data else None
-    user.lat = data['lat'] if 'lat' in data else None
-    user.lng = data['lng'] if 'lng' in data else None
+  d = {}
+  d['city'] = data['city'] if 'city' in data else None
+  d['country'] = data['country'] if 'country' in data else None
+  d['state'] = data['state'] if 'state' in data else None
+  d['lat'] = data['lat'] if 'lat' in data else None
+  d['lng'] = data['lng'] if 'lng' in data else None
+  print(d)
 
+
+  try:
+    #user = db_session.query(Users).get(message['user_id'])
+    db_session.query(Users).filter(Users.id == message['user_id']).update(d)
+    #print(user)
+  except:
+      pass
+  
+  
+  
+  
+  try:
     db_session.commit()
-
     engine.dispose()
+  except:
+    pass
 
-    print(" [x] Done")
-    time.sleep(5)
+  print(" [x] Done")
+  #time.sleep(5)
 
-    #ch.basic_ack(delivery_tag=method.delivery_tag)
-    ch.basic_nack(delivery_tag=method.delivery_tag)
+  ch.basic_ack(delivery_tag=method.delivery_tag)
+  #ch.basic_nack(delivery_tag=method.delivery_tag)
 
 channel.basic_qos(prefetch_count=1)
 channel.basic_consume(queue='task_queue', on_message_callback=callback)
